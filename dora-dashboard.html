@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DORA Metrics Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3"></script>
+  <style>
+    :root {
+      --bg: #f4f6f9;
+      --header-bg: #1a1f36;
+      --card-bg: #ffffff;
+      --text: #2d3748;
+      --text-muted: #718096;
+      --shadow: 0 2px 8px rgba(0,0,0,0.08);
+      --radius: 10px;
+      --green: #22c55e;
+      --red: #ef4444;
+      --blue: #3b82f6;
+      --amber: #f59e0b;
+      --purple: #8b5cf6;
+      --teal: #14b8a6;
+      --orange: #f97316;
+      --team1: #3b82f6;
+      --team2: #8b5cf6;
+      --team3: #f97316;
+      --team4: #14b8a6;
+      --team5: #ec4899;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); }
+
+    header {
+      background: var(--header-bg);
+      color: #fff;
+      padding: 28px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    header h1 { font-size: 24px; font-weight: 700; letter-spacing: -0.5px; }
+    header p { color: #a0aec0; font-size: 14px; }
+    .filters {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+    .filters select {
+      padding: 8px 14px;
+      border-radius: 6px;
+      border: 1px solid #4a5568;
+      background: #2d3748;
+      color: #fff;
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    .container { max-width: 1400px; margin: 0 auto; padding: 24px; }
+
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+      margin-bottom: 28px;
+    }
+    .kpi-card {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 24px;
+      border-left: 4px solid var(--blue);
+      position: relative;
+    }
+    .kpi-card:nth-child(2) { border-left-color: var(--purple); }
+    .kpi-card:nth-child(3) { border-left-color: var(--teal); }
+    .kpi-card:nth-child(4) { border-left-color: var(--orange); }
+    .kpi-label { font-size: 13px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+    .kpi-value { font-size: 32px; font-weight: 700; margin-bottom: 6px; }
+    .kpi-delta { font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 12px; }
+    .kpi-delta.good { color: var(--green); background: #f0fdf4; }
+    .kpi-delta.bad { color: var(--red); background: #fef2f2; }
+    .kpi-unit { font-size: 14px; color: var(--text-muted); font-weight: 400; }
+    .kpi-badge {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .badge-elite { background: #dcfce7; color: #166534; }
+    .badge-high { background: #dbeafe; color: #1e40af; }
+    .badge-medium { background: #fef3c7; color: #92400e; }
+    .badge-low { background: #fee2e2; color: #991b1b; }
+
+    .charts-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+      margin-bottom: 28px;
+    }
+    .chart-card {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 24px;
+    }
+    .chart-card h3 { font-size: 15px; margin-bottom: 16px; color: var(--text); }
+    .chart-card canvas { width: 100% !important; }
+
+    .full-width { grid-column: 1 / -1; }
+
+    .perf-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      font-size: 14px;
+    }
+    .perf-table th {
+      background: #f7fafc;
+      padding: 12px 16px;
+      text-align: left;
+      font-weight: 600;
+      color: var(--text-muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-bottom: 2px solid #e2e8f0;
+    }
+    .perf-table td {
+      padding: 14px 16px;
+      border-bottom: 1px solid #edf2f7;
+    }
+    .perf-table tr:hover td { background: #f7fafc; }
+    .team-dot {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      margin-right: 8px;
+    }
+    .trend-arrow { font-size: 12px; margin-left: 4px; }
+    .trend-good { color: var(--green); }
+    .trend-bad { color: var(--red); }
+
+    footer {
+      text-align: center;
+      padding: 24px;
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+
+    @media (max-width: 900px) {
+      .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+      .charts-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 500px) {
+      .kpi-grid { grid-template-columns: 1fr; }
+      header { padding: 20px; }
+      .container { padding: 16px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>DORA Metrics Dashboard</h1>
+    <p>Engineering Performance &middot; Oct 2025 – Mar 2026</p>
+  </div>
+  <div class="filters">
+    <select id="teamFilter">
+      <option value="all">All Teams</option>
+    </select>
+    <select id="rangeFilter">
+      <option value="6">Last 6 Months</option>
+      <option value="3">Last 3 Months</option>
+    </select>
+  </div>
+</header>
+
+<div class="container">
+  <section class="kpi-grid" id="kpiGrid"></section>
+
+  <section class="charts-grid">
+    <div class="chart-card"><h3>Deployment Frequency (deploys/day)</h3><canvas id="chartDF"></canvas></div>
+    <div class="chart-card"><h3>Lead Time for Changes (hours)</h3><canvas id="chartLT"></canvas></div>
+    <div class="chart-card"><h3>Mean Time to Recovery (hours)</h3><canvas id="chartMTTR"></canvas></div>
+    <div class="chart-card"><h3>Change Failure Rate (%)</h3><canvas id="chartCFR"></canvas></div>
+  </section>
+
+  <section class="charts-grid">
+    <div class="chart-card full-width"><h3>Team Comparison — Current Period</h3><canvas id="chartComparison"></canvas></div>
+  </section>
+
+  <section class="charts-grid">
+    <div class="chart-card full-width">
+      <h3>Performance Summary</h3>
+      <table class="perf-table" id="perfTable">
+        <thead>
+          <tr>
+            <th>Team</th>
+            <th>Deploy Freq</th>
+            <th>Lead Time</th>
+            <th>MTTR</th>
+            <th>Change Failure Rate</th>
+            <th>DORA Level</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+</div>
+
+<footer>Data generated with mock values for workshop demonstration &middot; Powered by the DORA framework</footer>
+
+<script>
+const TEAMS = [
+  { name: 'Platform Engineering', color: '#3b82f6', df: [5, 7],   lt: [2, 1.5],   mttr: [0.8, 0.5], cfr: [5, 3] },
+  { name: 'Payments',             color: '#8b5cf6', df: [2, 3.5], lt: [8, 4],     mttr: [3, 1.5],   cfr: [15, 8] },
+  { name: 'Mobile Apps',          color: '#f97316', df: [0.5, 1.5], lt: [24, 12], mttr: [8, 4],     cfr: [20, 12] },
+  { name: 'Data Pipeline',        color: '#14b8a6', df: [1, 2],   lt: [12, 6],    mttr: [4, 2],     cfr: [10, 7] },
+  { name: 'Customer Portal',      color: '#ec4899', df: [3, 5],   lt: [4, 2.5],   mttr: [1.5, 0.8], cfr: [8, 4] },
+];
+
+const WEEKS = 26;
+let allData = {};
+let charts = {};
+
+function seededRandom(seed) {
+  let s = seed;
+  return function() {
+    s = (s * 16807 + 0) % 2147483647;
+    return (s - 1) / 2147483646;
+  };
+}
+
+function generateData() {
+  const rng = seededRandom(42);
+  const startDate = new Date('2025-10-06');
+
+  TEAMS.forEach(team => {
+    const points = [];
+    for (let w = 0; w < WEEKS; w++) {
+      const t = w / (WEEKS - 1);
+      const date = new Date(startDate);
+      date.setDate(date.getDate() + w * 7);
+
+      const noise = () => 0.85 + rng() * 0.3;
+      points.push({
+        date: date.toISOString().split('T')[0],
+        df:   +(team.df[0]   + (team.df[1]   - team.df[0])   * t).toFixed(2) * noise(),
+        lt:   +(team.lt[0]   + (team.lt[1]   - team.lt[0])   * t).toFixed(2) * noise(),
+        mttr: +(team.mttr[0] + (team.mttr[1] - team.mttr[0]) * t).toFixed(2) * noise(),
+        cfr:  +(team.cfr[0]  + (team.cfr[1]  - team.cfr[0])  * t).toFixed(2) * noise(),
+      });
+    }
+    allData[team.name] = points;
+  });
+}
+
+function getDoraLevel(df, lt, mttr, cfr) {
+  let score = 0;
+  if (df >= 1) score++; if (df >= 3) score++;
+  if (lt < 24) score++; if (lt < 1) score++;
+  if (mttr < 24) score++; if (mttr < 1) score++;
+  if (cfr < 15) score++; if (cfr < 5) score++;
+  if (score >= 7) return 'Elite';
+  if (score >= 5) return 'High';
+  if (score >= 3) return 'Medium';
+  return 'Low';
+}
+
+function avg(arr) { return arr.reduce((a, b) => a + b, 0) / arr.length; }
+
+function getMetrics(teamName, months) {
+  const weeksToUse = months === 3 ? 13 : 26;
+  if (teamName === 'all') {
+    const results = {};
+    ['df', 'lt', 'mttr', 'cfr'].forEach(m => {
+      const allVals = TEAMS.map(t => {
+        const pts = allData[t.name].slice(-weeksToUse);
+        return avg(pts.map(p => p[m]));
+      });
+      results[m] = avg(allVals);
+    });
+    const recent = TEAMS.map(t => {
+      const pts = allData[t.name].slice(-4);
+      return { df: avg(pts.map(p => p.df)), lt: avg(pts.map(p => p.lt)), mttr: avg(pts.map(p => p.mttr)), cfr: avg(pts.map(p => p.cfr)) };
+    });
+    const prev = TEAMS.map(t => {
+      const pts = allData[t.name].slice(-8, -4);
+      return { df: avg(pts.map(p => p.df)), lt: avg(pts.map(p => p.lt)), mttr: avg(pts.map(p => p.mttr)), cfr: avg(pts.map(p => p.cfr)) };
+    });
+    return {
+      current: { df: avg(recent.map(r => r.df)), lt: avg(recent.map(r => r.lt)), mttr: avg(recent.map(r => r.mttr)), cfr: avg(recent.map(r => r.cfr)) },
+      previous: { df: avg(prev.map(r => r.df)), lt: avg(prev.map(r => r.lt)), mttr: avg(prev.map(r => r.mttr)), cfr: avg(prev.map(r => r.cfr)) },
+    };
+  }
+  const pts = allData[teamName].slice(-weeksToUse);
+  const recent = pts.slice(-4);
+  const prev = pts.slice(-8, -4);
+  return {
+    current: { df: avg(recent.map(p => p.df)), lt: avg(recent.map(p => p.lt)), mttr: avg(recent.map(p => p.mttr)), cfr: avg(recent.map(p => p.cfr)) },
+    previous: { df: avg(prev.map(p => p.df)), lt: avg(prev.map(p => p.lt)), mttr: avg(prev.map(p => p.mttr)), cfr: avg(prev.map(p => p.cfr)) },
+  };
+}
+
+function renderKPIs(teamName, months) {
+  const { current, previous } = getMetrics(teamName, months);
+  const level = getDoraLevel(current.df, current.lt, current.mttr, current.cfr);
+
+  const cards = [
+    { label: 'Deployment Frequency', value: current.df.toFixed(1), unit: 'deploys/day', prev: previous.df, higherIsBetter: true },
+    { label: 'Lead Time for Changes', value: current.lt.toFixed(1), unit: 'hours', prev: previous.lt, higherIsBetter: false },
+    { label: 'Mean Time to Recovery', value: current.mttr.toFixed(1), unit: 'hours', prev: previous.mttr, higherIsBetter: false },
+    { label: 'Change Failure Rate', value: current.cfr.toFixed(1), unit: '%', prev: previous.cfr, higherIsBetter: false },
+  ];
+
+  const grid = document.getElementById('kpiGrid');
+  grid.innerHTML = cards.map((c, i) => {
+    const delta = ((c.higherIsBetter ? 1 : -1) * ((parseFloat(c.value) - c.prev) / c.prev) * 100);
+    const isGood = delta > 0;
+    const arrow = isGood ? '&#9650;' : '&#9660;';
+    const badgeClass = `badge-${level.toLowerCase()}`;
+    return `<div class="kpi-card">
+      ${i === 0 ? `<span class="kpi-badge ${badgeClass}">${level}</span>` : ''}
+      <div class="kpi-label">${c.label}</div>
+      <div class="kpi-value">${c.value} <span class="kpi-unit">${c.unit}</span></div>
+      <span class="kpi-delta ${isGood ? 'good' : 'bad'}">${arrow} ${Math.abs(delta).toFixed(1)}%</span>
+    </div>`;
+  }).join('');
+}
+
+function makeLineChart(canvasId, metric, label, teamName, months) {
+  const weeksToUse = months === 3 ? 13 : 26;
+  const ctx = document.getElementById(canvasId).getContext('2d');
+  if (charts[canvasId]) charts[canvasId].destroy();
+
+  const datasets = TEAMS.map(team => {
+    const pts = allData[team.name].slice(-weeksToUse);
+    const isSelected = teamName === 'all' || teamName === team.name;
+    return {
+      label: team.name,
+      data: pts.map(p => ({ x: p.date, y: +p[metric].toFixed(2) })),
+      borderColor: team.color,
+      backgroundColor: team.color + '22',
+      borderWidth: isSelected ? 2.5 : 1,
+      pointRadius: isSelected ? 3 : 0,
+      tension: 0.35,
+      hidden: false,
+      opacity: isSelected ? 1 : 0.2,
+      borderDash: isSelected ? [] : [4, 4],
+    };
+  });
+
+  charts[canvasId] = new Chart(ctx, {
+    type: 'line',
+    data: { datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      aspectRatio: 2,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { position: 'bottom', labels: { usePointStyle: true, pointStyle: 'circle', padding: 16, font: { size: 12 } } },
+        tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(2)} ${label}` } },
+      },
+      scales: {
+        x: { type: 'time', time: { unit: 'week', displayFormats: { week: 'MMM d' } }, grid: { display: false } },
+        y: { beginAtZero: true, grid: { color: '#f0f0f0' } },
+      },
+    },
+  });
+}
+
+function renderComparisonChart(teamName, months) {
+  const ctx = document.getElementById('chartComparison').getContext('2d');
+  if (charts['chartComparison']) charts['chartComparison'].destroy();
+
+  const teamsToShow = teamName === 'all' ? TEAMS : TEAMS.filter(t => t.name === teamName);
+  const metrics = ['df', 'lt', 'mttr', 'cfr'];
+  const metricLabels = ['Deploy Freq (deploys/day)', 'Lead Time (hrs)', 'MTTR (hrs)', 'Change Failure Rate (%)'];
+  const metricColors = ['#3b82f6', '#8b5cf6', '#14b8a6', '#f97316'];
+
+  const datasets = metrics.map((m, mi) => ({
+    label: metricLabels[mi],
+    data: teamsToShow.map(t => {
+      const pts = allData[t.name].slice(-4);
+      return +avg(pts.map(p => p[m])).toFixed(2);
+    }),
+    backgroundColor: metricColors[mi] + 'cc',
+    borderColor: metricColors[mi],
+    borderWidth: 1,
+    borderRadius: 4,
+  }));
+
+  charts['chartComparison'] = new Chart(ctx, {
+    type: 'bar',
+    data: { labels: teamsToShow.map(t => t.name), datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      aspectRatio: 3,
+      indexAxis: 'y',
+      plugins: {
+        legend: { position: 'bottom', labels: { usePointStyle: true, pointStyle: 'rect', padding: 16, font: { size: 12 } } },
+      },
+      scales: {
+        x: { grid: { color: '#f0f0f0' }, beginAtZero: true },
+        y: { grid: { display: false } },
+      },
+    },
+  });
+}
+
+function renderPerfTable(months) {
+  const tbody = document.querySelector('#perfTable tbody');
+  const weeksToUse = months === 3 ? 13 : 26;
+
+  tbody.innerHTML = TEAMS.map(team => {
+    const pts = allData[team.name].slice(-4);
+    const prev = allData[team.name].slice(-8, -4);
+    const cur = { df: avg(pts.map(p => p.df)), lt: avg(pts.map(p => p.lt)), mttr: avg(pts.map(p => p.mttr)), cfr: avg(pts.map(p => p.cfr)) };
+    const prv = { df: avg(prev.map(p => p.df)), lt: avg(prev.map(p => p.lt)), mttr: avg(prev.map(p => p.mttr)), cfr: avg(prev.map(p => p.cfr)) };
+    const level = getDoraLevel(cur.df, cur.lt, cur.mttr, cur.cfr);
+    const badgeClass = `badge-${level.toLowerCase()}`;
+
+    function trendCell(val, prevVal, unit, higherBetter) {
+      const pct = ((val - prevVal) / prevVal * 100);
+      const isGood = higherBetter ? pct > 0 : pct < 0;
+      const arrow = pct > 0 ? '&#9650;' : '&#9660;';
+      return `${val.toFixed(1)}${unit} <span class="trend-arrow ${isGood ? 'trend-good' : 'trend-bad'}">${arrow}${Math.abs(pct).toFixed(0)}%</span>`;
+    }
+
+    return `<tr>
+      <td><span class="team-dot" style="background:${team.color}"></span>${team.name}</td>
+      <td>${trendCell(cur.df, prv.df, '/day', true)}</td>
+      <td>${trendCell(cur.lt, prv.lt, ' hrs', false)}</td>
+      <td>${trendCell(cur.mttr, prv.mttr, ' hrs', false)}</td>
+      <td>${trendCell(cur.cfr, prv.cfr, '%', false)}</td>
+      <td><span class="kpi-badge ${badgeClass}">${level}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+function updateDashboard() {
+  const teamName = document.getElementById('teamFilter').value;
+  const months = parseInt(document.getElementById('rangeFilter').value);
+  renderKPIs(teamName, months);
+  makeLineChart('chartDF', 'df', 'deploys/day', teamName, months);
+  makeLineChart('chartLT', 'lt', 'hours', teamName, months);
+  makeLineChart('chartMTTR', 'mttr', 'hours', teamName, months);
+  makeLineChart('chartCFR', 'cfr', '%', teamName, months);
+  renderComparisonChart(teamName, months);
+  renderPerfTable(months);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  generateData();
+  const select = document.getElementById('teamFilter');
+  TEAMS.forEach(t => {
+    const opt = document.createElement('option');
+    opt.value = t.name;
+    opt.textContent = t.name;
+    select.appendChild(opt);
+  });
+  document.getElementById('teamFilter').addEventListener('change', updateDashboard);
+  document.getElementById('rangeFilter').addEventListener('change', updateDashboard);
+  updateDashboard();
+});
+</script>
+
+</body>
+</html>
