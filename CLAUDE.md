@@ -10,6 +10,7 @@ ghentworkshop/
 ├── .gitignore        # Excludes .env and common artifacts
 ├── .claudeignore     # Files excluded from Claude context
 ├── dora-dashboard.html  # DORA Metrics Dashboard (self-contained, open in browser)
+├── qa-agent.mjs      # Custom QA Agent (Claude + GitHub API)
 ├── README.md         # Project readme
 └── CLAUDE.md         # This file
 ```
@@ -22,8 +23,27 @@ ghentworkshop/
 - **Features:** Team filter, time range toggle (3M/6M), trend charts, team comparison bar chart, performance summary table with DORA level badges (Elite/High/Medium/Low)
 - **CDN deps:** Chart.js 4.x, chartjs-adapter-date-fns 3.x
 
+## QA Agent (qa-agent.mjs)
+- **Purpose:** AI-powered QA agent that reviews PRs, analyzes repo health, and posts review comments
+- **Stack:** Claude Opus 4.6 (Anthropic SDK) + GitHub API (via `gh` CLI)
+- **Tools:** 10 GitHub tools (list PRs, get diffs, search code, post reviews, etc.)
+- **GitHub Enterprise:** Set `GH_HOST` and `GITHUB_API_URL` for GitHub Enterprise Server
+- **Usage:**
+  ```bash
+  # Review a specific PR
+  ANTHROPIC_API_KEY=sk-... node qa-agent.mjs --repo owner/repo --pr 42
+  # Repo health check
+  ANTHROPIC_API_KEY=sk-... node qa-agent.mjs --repo owner/repo --health
+  # General QA summary
+  ANTHROPIC_API_KEY=sk-... node qa-agent.mjs --repo owner/repo
+  # Actually post review comments
+  ANTHROPIC_API_KEY=sk-... node qa-agent.mjs --repo owner/repo --pr 42 --post-review
+  ```
+
 ## Environment Variables
+- `ANTHROPIC_API_KEY` — Claude API key (required for qa-agent)
 - `GITHUB_PAT_TOKEN` — GitHub Personal Access Token (stored in `.env`, gitignored)
+- `GITHUB_API_URL` — GitHub Enterprise API URL (optional, default: api.github.com)
 
 ## Security Rules
 - **NEVER commit `.env` or any file containing secrets**
