@@ -1,21 +1,40 @@
+# Secrets
 .env
 .env.*
+
+# Git
 .git/
+
+# Dependencies
 node_modules/
+package-lock.json
+yarn.lock
+
+# Claude workspace
+.claude/
+
+# Python
 __pycache__/
 *.pyc
 *.pyo
+
+# OS
 .DS_Store
-*.log
-*.tmp
+Thumbs.db
+
+# Editor
 *.swp
 *.swo
+
+# Build/temp
 dist/
 build/
 .next/
 coverage/
 .cache/
+*.log
+*.tmp
+
+# Minified (noisy for context)
 *.min.js
 *.min.css
-package-lock.json
-yarn.lock

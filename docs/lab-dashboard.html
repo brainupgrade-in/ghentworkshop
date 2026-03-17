@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lab Completion Dashboard — GitHub Enterprise Workshop</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+
+body{
+  font-family:'JetBrains Mono',-apple-system,BlinkMacSystemFont,monospace;
+  background:#070b13;
+  color:#e6edf3;
+  min-height:100vh;
+  padding:20px;
+}
+body::before{
+  content:'';position:fixed;inset:0;
+  background-image:radial-gradient(circle,#1a2030 1px,transparent 1px);
+  background-size:32px 32px;opacity:.35;pointer-events:none;z-index:0;
+}
+
+.container{max-width:1500px;margin:0 auto;position:relative;z-index:1}
+
+/* ── Header ───────────────────────────────────────────── */
+.header{
+  background:linear-gradient(135deg,#0d1117 0%,#161b22 100%);
+  border:1px solid #21262d;
+  border-radius:12px;padding:30px;margin-bottom:20px;
+  position:relative;
+}
+.header h1{
+  font-family:'Syne',sans-serif;font-weight:800;font-size:1.8em;
+  background:linear-gradient(90deg,#58a6ff,#bc8cff);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  margin-bottom:6px;
+}
+.header .subtitle{color:#7d8590;font-size:.95em}
+.header .last-updated{color:#484f58;font-size:.8em;margin-top:8px}
+
+.refresh-btn{
+  position:absolute;top:30px;right:30px;
+  background:linear-gradient(135deg,#238636,#1f6feb);
+  color:#fff;border:none;padding:10px 22px;border-radius:8px;
+  font-size:.85em;font-weight:600;cursor:pointer;
+  font-family:'JetBrains Mono',monospace;
+  display:flex;align-items:center;gap:8px;
+  transition:all .3s ease;
+}
+.refresh-btn:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(63,185,80,.25)}
+.refresh-btn.refreshing{opacity:.6;cursor:not-allowed}
+.refresh-btn.refreshing .refresh-icon{animation:spin 1s linear infinite}
+@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+
+/* ── Stats Grid ───────────────────────────────────────── */
+.stats-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+  gap:16px;margin-bottom:20px;
+}
+.stat-card{
+  background:#0d1117;border:1px solid #21262d;
+  border-radius:10px;padding:22px;
+}
+.stat-card .label{
+  color:#7d8590;font-size:.75em;text-transform:uppercase;
+  letter-spacing:.08em;margin-bottom:8px;
+}
+.stat-card .value{font-size:2.2em;font-weight:700;color:#e6edf3}
+.stat-card .sub-value{color:#484f58;font-size:.8em;margin-top:4px}
+
+.stat-card.progress-card{
+  background:linear-gradient(135deg,#1f6feb,#8957e5);
+  border-color:transparent;
+}
+.stat-card.progress-card .label,
+.stat-card.progress-card .value,
+.stat-card.progress-card .sub-value{color:#fff}
+
+.progress-bar{
+  background:rgba(255,255,255,.2);height:8px;border-radius:4px;
+  margin-top:12px;overflow:hidden;
+}
+.progress-bar-fill{
+  background:#fff;height:100%;border-radius:4px;
+  transition:width .4s ease;
+}
+
+/* ── Sections ─────────────────────────────────────────── */
+.section{
+  background:#0d1117;border:1px solid #21262d;
+  border-radius:12px;padding:28px;margin-bottom:20px;
+}
+.section h2{
+  font-family:'Syne',sans-serif;font-weight:700;font-size:1.3em;
+  margin-bottom:18px;padding-bottom:10px;
+  border-bottom:1px solid #21262d;color:#e6edf3;
+}
+
+/* ── Filters ──────────────────────────────────────────── */
+.filter-container{display:flex;align-items:center;gap:14px;margin-bottom:18px;flex-wrap:wrap}
+.filter-wrapper{position:relative;flex:1;max-width:400px}
+.filter-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#484f58;font-size:1em}
+.filter-input{
+  width:100%;padding:10px 14px 10px 36px;
+  background:#161b22;border:1px solid #30363d;border-radius:6px;
+  color:#e6edf3;font-family:'JetBrains Mono',monospace;font-size:.85em;
+  transition:border-color .2s;
+}
+.filter-input:focus{outline:none;border-color:#58a6ff;box-shadow:0 0 0 3px rgba(88,166,255,.1)}
+.filter-input::placeholder{color:#484f58}
+.filter-clear{
+  position:absolute;right:10px;top:50%;transform:translateY(-50%);
+  background:none;border:none;color:#484f58;cursor:pointer;
+  font-size:1.1em;padding:4px;display:none;
+}
+.filter-clear:hover{color:#7d8590}
+.filter-clear.visible{display:block}
+.filter-stats{color:#7d8590;font-size:.8em;padding:6px 14px;background:#161b22;border-radius:6px;border:1px solid #21262d}
+.filter-stats strong{color:#e6edf3}
+
+tr.hidden,.day-section.hidden{display:none}
+
+/* ── Tables ───────────────────────────────────────────── */
+.matrix-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:.82em}
+th{
+  background:#161b22;color:#7d8590;font-weight:600;
+  padding:10px 8px;text-align:left;
+  position:sticky;top:0;z-index:2;
+  border-bottom:1px solid #30363d;
+}
+td{padding:9px 8px;border-bottom:1px solid #21262d}
+tr:hover td{background:#161b22}
+
+.participant-name{font-weight:600;color:#e6edf3;white-space:nowrap}
+
+/* Day header columns */
+.day-col-header{text-align:center;font-size:.7em;letter-spacing:.08em;text-transform:uppercase}
+
+/* Lab cells */
+.lab-cell{text-align:center;font-size:.9em}
+.lab-done{color:#3fb950}
+.lab-pending{color:#30363d}
+
+/* Status badges */
+.status-badge{
+  display:inline-block;padding:3px 10px;border-radius:10px;
+  font-size:.8em;font-weight:600;
+}
+.status-complete{background:rgba(63,185,80,.15);color:#3fb950;border:1px solid rgba(63,185,80,.3)}
+.status-partial{background:rgba(227,179,65,.12);color:#e3b341;border:1px solid rgba(227,179,65,.3)}
+.status-none{background:rgba(248,81,73,.12);color:#f85149;border:1px solid rgba(248,81,73,.3)}
+
+/* ── Day Sections ─────────────────────────────────────── */
+.day-header{
+  display:flex;justify-content:space-between;align-items:center;
+  margin-bottom:14px;
+}
+.day-title{
+  font-family:'Syne',sans-serif;font-weight:700;font-size:1.1em;
+  display:flex;align-items:center;gap:10px;
+}
+.day-dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+.day-progress{display:flex;align-items:center;gap:10px}
+.day-progress-bar{
+  width:180px;background:#21262d;height:6px;border-radius:3px;overflow:hidden;
+}
+.day-progress-fill{height:100%;border-radius:3px;transition:width .3s ease}
+.day-progress-text{font-size:.8em;color:#7d8590;min-width:55px;text-align:right}
+
+.day-section{margin-bottom:28px}
+.day-section:last-child{margin-bottom:0}
+
+/* ── Footer ───────────────────────────────────────────── */
+.dashboard-footer{
+  text-align:center;padding:20px;color:#484f58;font-size:.75em;
+  border-top:1px solid #21262d;margin-top:10px;
+}
+.dashboard-footer a{color:#58a6ff;text-decoration:none}
+.dashboard-footer a:hover{text-decoration:underline}
+
+/* ── Responsive ───────────────────────────────────────── */
+@media(max-width:768px){
+  .stats-grid{grid-template-columns:1fr 1fr}
+  .day-progress-bar{width:100px}
+  .refresh-btn{position:static;margin-top:14px}
+}
+@media(max-width:480px){
+  .stats-grid{grid-template-columns:1fr}
+}
+
+/* ── No-results ───────────────────────────────────────── */
+.no-results{text-align:center;padding:40px;color:#484f58;font-size:1em}
+.no-results-icon{font-size:2.5em;margin-bottom:8px;opacity:.5}
+</style>
+</head>
+<body>
+<div class="container">
+
+<!-- ── Header ──────────────────────────────────────────── -->
+<div class="header">
+  <button class="refresh-btn" onclick="refreshDashboard()">
+    <span class="refresh-icon">&#x21bb;</span><span>Refresh</span>
+  </button>
+  <h1>Lab Completion Dashboard</h1>
+  <div class="subtitle">GitHub Enterprise for the Modern SDLC &mdash; 5-Day Workshop</div>
+  <div class="last-updated">Last updated: 2026-03-17 18:24:17</div>
+</div>
+
+<!-- ── Stats ───────────────────────────────────────────── -->
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="label">Participants</div>
+    <div class="value">0</div>
+    <div class="sub-value">Enrolled in workshop</div>
+  </div>
+  <div class="stat-card">
+    <div class="label">Total Labs</div>
+    <div class="value">16</div>
+    <div class="sub-value">15 labs + 1 capstone &middot; 5 days</div>
+  </div>
+  <div class="stat-card">
+    <div class="label">Completions</div>
+    <div class="value">0</div>
+    <div class="sub-value">of 0 possible</div>
+  </div>
+  <div class="stat-card progress-card">
+    <div class="label">Overall Progress</div>
+    <div class="value">0.0%</div>
+    <div class="progress-bar"><div class="progress-bar-fill" style="width:0.0%"></div></div>
+  </div>
+</div>
+
+<div class="section">
+  <h2>Completion Matrix</h2>
+  <div class="filter-container">
+    <div class="filter-wrapper">
+      <span class="filter-icon">&#x1F50D;</span>
+      <input type="text" id="userFilter" class="filter-input" placeholder="Filter by participant name...">
+      <button class="filter-clear" id="userFilterClear" onclick="clearUserFilter()">&times;</button>
+    </div>
+    <div class="filter-stats">
+      Showing <strong id="visibleUsers">0</strong> of <strong>0</strong> participants
+    </div>
+  </div>
+  <div class="matrix-wrap">
+    <table id="completionTable">
+      <thead>
+        <tr>
+          <th rowspan="2" style="vertical-align:bottom">Participant</th>
+          <th colspan="3" class="day-col-header" style="color:#58a6ff;border-bottom:2px solid #58a6ff">Day 1</th>
+          <th colspan="3" class="day-col-header" style="color:#3fb950;border-bottom:2px solid #3fb950">Day 2</th>
+          <th colspan="3" class="day-col-header" style="color:#e3b341;border-bottom:2px solid #e3b341">Day 3</th>
+          <th colspan="4" class="day-col-header" style="color:#f85149;border-bottom:2px solid #f85149">Day 4</th>
+          <th colspan="3" class="day-col-header" style="color:#bc8cff;border-bottom:2px solid #bc8cff">Day 5</th>
+          <th rowspan="2" style="vertical-align:bottom">Total</th>
+          <th rowspan="2" style="vertical-align:bottom">Status</th>
+        </tr>
+        <tr>
+          <th style="text-align:center;font-size:.7em;color:#58a6ff" title="Lab 01: Git Workflow">L01</th>
+          <th style="text-align:center;font-size:.7em;color:#58a6ff" title="Lab 02: Code Review">L02</th>
+          <th style="text-align:center;font-size:.7em;color:#58a6ff" title="Lab 03: Project Management">L03</th>
+          <th style="text-align:center;font-size:.7em;color:#3fb950" title="Lab 04: Copilot Develop">L04</th>
+          <th style="text-align:center;font-size:.7em;color:#3fb950" title="Lab 05: Copilot Testing">L05</th>
+          <th style="text-align:center;font-size:.7em;color:#3fb950" title="Lab 06: Copilot Agent">L06</th>
+          <th style="text-align:center;font-size:.7em;color:#e3b341" title="Lab 07: Actions CI">L07</th>
+          <th style="text-align:center;font-size:.7em;color:#e3b341" title="Lab 08: GHCR Publish">L08</th>
+          <th style="text-align:center;font-size:.7em;color:#e3b341" title="Lab 09: Environments">L09</th>
+          <th style="text-align:center;font-size:.7em;color:#f85149" title="Lab 10: CodeQL">L10</th>
+          <th style="text-align:center;font-size:.7em;color:#f85149" title="Lab 11: Secret Scanning">L11</th>
+          <th style="text-align:center;font-size:.7em;color:#f85149" title="Lab 12: Dependabot">L12</th>
+          <th style="text-align:center;font-size:.7em;color:#f85149" title="Lab 13: DORA Metrics">L13</th>
+          <th style="text-align:center;font-size:.7em;color:#bc8cff" title="Lab 14: Integrations">L14</th>
+          <th style="text-align:center;font-size:.7em;color:#bc8cff" title="Lab 15: Codespaces">L15</th>
+          <th style="text-align:center;font-size:.7em;color:#bc8cff" title="Lab 16: Capstone">L16</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td colspan="19" class="no-results"><div class="no-results-icon">&#x1F4CB;</div>No submissions yet. Waiting for participants...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section">
+  <h2>Day-by-Day Breakdown</h2>
+  <div class="filter-container">
+    <div class="filter-wrapper">
+      <span class="filter-icon">&#x1F50D;</span>
+      <input type="text" id="dayFilter" class="filter-input" placeholder="Filter by day or lab name...">
+      <button class="filter-clear" id="dayFilterClear" onclick="clearDayFilter()">&times;</button>
+    </div>
+    <div class="filter-stats">
+      Showing <strong id="visibleDays">5</strong> of <strong>5</strong> days
+    </div>
+  </div>
+
+  <div class="day-section" data-day="1">
+    <div class="day-header">
+      <div class="day-title">
+        <span class="day-dot" style="background:#58a6ff"></span>
+        Day 1: Foundation — Platform, Identity & Planning
+      </div>
+      <div class="day-progress">
+        <div class="day-progress-bar">
+          <div class="day-progress-fill" style="width:0.0%;background:#58a6ff"></div>
+        </div>
+        <div class="day-progress-text">0/3</div>
+      </div>
+    </div>
+    <p style="color:#484f58;text-align:center;padding:20px">No submissions yet</p>
+  </div>
+
+  <div class="day-section" data-day="2">
+    <div class="day-header">
+      <div class="day-title">
+        <span class="day-dot" style="background:#3fb950"></span>
+        Day 2: Prompting, Copilot & Agentic AI
+      </div>
+      <div class="day-progress">
+        <div class="day-progress-bar">
+          <div class="day-progress-fill" style="width:0.0%;background:#3fb950"></div>
+        </div>
+        <div class="day-progress-text">0/3</div>
+      </div>
+    </div>
+    <p style="color:#484f58;text-align:center;padding:20px">No submissions yet</p>
+  </div>
+
+  <div class="day-section" data-day="3">
+    <div class="day-header">
+      <div class="day-title">
+        <span class="day-dot" style="background:#e3b341"></span>
+        Day 3: Standards, Automation & Secure Cloud
+      </div>
+      <div class="day-progress">
+        <div class="day-progress-bar">
+          <div class="day-progress-fill" style="width:0.0%;background:#e3b341"></div>
+        </div>
+        <div class="day-progress-text">0/3</div>
+      </div>
+    </div>
+    <p style="color:#484f58;text-align:center;padding:20px">No submissions yet</p>
+  </div>
+
+  <div class="day-section" data-day="4">
+    <div class="day-header">
+      <div class="day-title">
+        <span class="day-dot" style="background:#f85149"></span>
+        Day 4: Quality, Security & Metrics
+      </div>
+      <div class="day-progress">
+        <div class="day-progress-bar">
+          <div class="day-progress-fill" style="width:0.0%;background:#f85149"></div>
+        </div>
+        <div class="day-progress-text">0/4</div>
+      </div>
+    </div>
+    <p style="color:#484f58;text-align:center;padding:20px">No submissions yet</p>
+  </div>
+
+  <div class="day-section" data-day="5">
+    <div class="day-header">
+      <div class="day-title">
+        <span class="day-dot" style="background:#bc8cff"></span>
+        Day 5: Integrations, DevEx & AI Frontier
+      </div>
+      <div class="day-progress">
+        <div class="day-progress-bar">
+          <div class="day-progress-fill" style="width:0.0%;background:#bc8cff"></div>
+        </div>
+        <div class="day-progress-text">0/3</div>
+      </div>
+    </div>
+    <p style="color:#484f58;text-align:center;padding:20px">No submissions yet</p>
+  </div>
+</div>
+
+<div class="dashboard-footer">
+  &copy; 2026 gheWARE &middot; <a href="https://devops.gheware.com">devops.gheware.com</a>
+  &middot; Generated 2026-03-17 18:24:17
+</div>
+
+</div><!-- /container -->
+
+<script>
+function refreshDashboard(){
+  const btn=document.querySelector('.refresh-btn');
+  btn.classList.add('refreshing');btn.disabled=true;
+  btn.querySelector('span:last-child').textContent='Refreshing...';
+  setTimeout(()=>window.location.reload(),300);
+}
+
+/* ── Participant Filter (Completion Matrix) ─── */
+function filterUsers(){
+  const f=document.getElementById('userFilter').value.toLowerCase();
+  const rows=document.getElementById('completionTable').getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+  const clr=document.getElementById('userFilterClear');
+  let vis=0;
+  for(let i=0;i<rows.length;i++){
+    const c=rows[i].getElementsByClassName('participant-name')[0];
+    if(c&&(c.textContent||c.innerText).toLowerCase().indexOf(f)>-1){
+      rows[i].classList.remove('hidden');vis++;
+    }else{ rows[i].classList.add('hidden'); }
+  }
+  document.getElementById('visibleUsers').textContent=vis;
+  f?clr.classList.add('visible'):clr.classList.remove('visible');
+}
+function clearUserFilter(){
+  document.getElementById('userFilter').value='';filterUsers();
+  document.getElementById('userFilter').focus();
+}
+
+/* ── Day Filter (Day Breakdown) ────────────── */
+function filterDays(){
+  const f=document.getElementById('dayFilter').value.toLowerCase();
+  const secs=document.getElementsByClassName('day-section');
+  const clr=document.getElementById('dayFilterClear');
+  let vis=0;
+  for(let i=0;i<secs.length;i++){
+    const t=secs[i].textContent.toLowerCase();
+    if(t.indexOf(f)>-1){ secs[i].classList.remove('hidden');vis++; }
+    else{ secs[i].classList.add('hidden'); }
+  }
+  document.getElementById('visibleDays').textContent=vis;
+  f?clr.classList.add('visible'):clr.classList.remove('visible');
+}
+function clearDayFilter(){
+  document.getElementById('dayFilter').value='';filterDays();
+  document.getElementById('dayFilter').focus();
+}
+
+/* ── Init ──────────────────────────────────── */
+document.addEventListener('DOMContentLoaded',()=>{
+  document.getElementById('userFilter').addEventListener('input',filterUsers);
+  document.getElementById('dayFilter').addEventListener('input',filterDays);
+  document.getElementById('userFilter').addEventListener('keydown',e=>{if(e.key==='Escape')clearUserFilter()});
+  document.getElementById('dayFilter').addEventListener('keydown',e=>{if(e.key==='Escape')clearDayFilter()});
+});
+
+document.addEventListener('keydown',e=>{
+  if((e.ctrlKey||e.metaKey)&&e.shiftKey&&e.key==='R'){ e.preventDefault();refreshDashboard(); }
+  if((e.ctrlKey||e.metaKey)&&e.key==='f'){ e.preventDefault();document.getElementById('userFilter').focus(); }
+});
+</script>
+</body>
+</html>

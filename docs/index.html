@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GitHub Enterprise Workshop — Dashboards</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+
+body{
+  font-family:'JetBrains Mono',-apple-system,BlinkMacSystemFont,monospace;
+  background:#070b13;
+  color:#e6edf3;
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:40px 20px;
+}
+body::before{
+  content:'';position:fixed;inset:0;
+  background-image:radial-gradient(circle,#1a2030 1px,transparent 1px);
+  background-size:32px 32px;opacity:.35;pointer-events:none;z-index:0;
+}
+
+.container{
+  max-width:800px;
+  width:100%;
+  position:relative;
+  z-index:1;
+}
+
+/* Header */
+.header{
+  text-align:center;
+  margin-bottom:48px;
+}
+.header-badge{
+  display:inline-block;
+  font-size:.65em;letter-spacing:.15em;text-transform:uppercase;
+  color:#7d8590;
+  border:1px solid #21262d;border-radius:20px;
+  padding:4px 16px;margin-bottom:20px;
+}
+.header h1{
+  font-family:'Syne',sans-serif;font-weight:800;font-size:2.4em;
+  line-height:1.15;margin-bottom:12px;
+  background:linear-gradient(90deg,#58a6ff,#bc8cff,#3fb950);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+.header p{
+  color:#7d8590;font-size:.9em;line-height:1.7;
+  max-width:550px;margin:0 auto;
+}
+
+/* Cards */
+.cards{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(320px,1fr));
+  gap:20px;
+  margin-bottom:48px;
+}
+.card{
+  background:#0d1117;
+  border:1px solid #21262d;
+  border-radius:12px;
+  padding:28px;
+  text-decoration:none;
+  color:inherit;
+  transition:all .25s ease;
+  position:relative;
+  overflow:hidden;
+}
+.card:hover{
+  border-color:var(--accent);
+  transform:translateY(-4px);
+  box-shadow:0 12px 40px rgba(0,0,0,.4);
+}
+.card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:3px;
+  background:var(--accent);opacity:0;transition:opacity .25s;
+}
+.card:hover::before{opacity:1}
+
+.card-icon{
+  font-size:2em;margin-bottom:16px;
+  display:flex;align-items:center;justify-content:center;
+  width:56px;height:56px;border-radius:12px;
+  background:var(--accent-bg);
+}
+.card-title{
+  font-family:'Syne',sans-serif;font-weight:700;
+  font-size:1.15em;margin-bottom:8px;color:#e6edf3;
+}
+.card-desc{
+  font-size:.8em;color:#7d8590;line-height:1.6;margin-bottom:16px;
+}
+.card-link{
+  display:inline-flex;align-items:center;gap:6px;
+  font-size:.75em;font-weight:600;letter-spacing:.05em;
+  color:var(--accent);
+}
+.card-link::after{content:'\2192';transition:transform .2s}
+.card:hover .card-link::after{transform:translateX(4px)}
+
+/* Day pills */
+.day-pills{
+  display:flex;flex-wrap:wrap;gap:6px;margin-top:12px;
+}
+.day-pill{
+  font-size:.6em;padding:2px 10px;border-radius:10px;
+  letter-spacing:.06em;font-weight:600;
+}
+
+/* Footer */
+.footer{
+  text-align:center;
+  padding-top:24px;
+  border-top:1px solid #21262d;
+  color:#484f58;font-size:.7em;
+}
+.footer a{color:#58a6ff;text-decoration:none}
+.footer a:hover{text-decoration:underline}
+
+@media(max-width:680px){
+  .cards{grid-template-columns:1fr}
+  .header h1{font-size:1.6em}
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <div class="header">
+    <div class="header-badge">Workshop Dashboards</div>
+    <h1>GitHub Enterprise<br>for the Modern SDLC</h1>
+    <p>5-day instructor-led workshop &mdash; 17 modules, 15 labs + 1 capstone.
+       Real-time tracking dashboards for participants and trainers.</p>
+  </div>
+
+  <div class="cards">
+
+    <!-- Lab Completion Dashboard -->
+    <a href="lab-dashboard.html" class="card" style="--accent:#3fb950;--accent-bg:rgba(63,185,80,.1)">
+      <div class="card-icon">&#x1F4CB;</div>
+      <div class="card-title">Lab Completion Dashboard</div>
+      <div class="card-desc">
+        Track lab assignment completions for all 25 participants.
+        Completion matrix, day-by-day breakdown, progress badges,
+        and real-time filtering.
+      </div>
+      <div class="day-pills">
+        <span class="day-pill" style="background:rgba(88,166,255,.15);color:#58a6ff">Day 1 &middot; 3 labs</span>
+        <span class="day-pill" style="background:rgba(63,185,80,.15);color:#3fb950">Day 2 &middot; 3 labs</span>
+        <span class="day-pill" style="background:rgba(227,179,65,.12);color:#e3b341">Day 3 &middot; 3 labs</span>
+        <span class="day-pill" style="background:rgba(248,81,73,.12);color:#f85149">Day 4 &middot; 4 labs</span>
+        <span class="day-pill" style="background:rgba(188,140,255,.12);color:#bc8cff">Day 5 &middot; 3 labs</span>
+      </div>
+      <div class="card-link">Open Dashboard</div>
+    </a>
+
+    <!-- DORA Metrics Dashboard -->
+    <a href="dora-dashboard.html" class="card" style="--accent:#58a6ff;--accent-bg:rgba(88,166,255,.1)">
+      <div class="card-icon">&#x1F4CA;</div>
+      <div class="card-title">DORA Metrics Dashboard</div>
+      <div class="card-desc">
+        Interactive visualisation of DORA metrics across 5 teams.
+        Deployment frequency, lead time, MTTR, and change failure rate
+        with trend charts and team comparison.
+      </div>
+      <div class="day-pills">
+        <span class="day-pill" style="background:rgba(88,166,255,.15);color:#58a6ff">Lab 13 Demo</span>
+        <span class="day-pill" style="background:rgba(188,140,255,.12);color:#bc8cff">Chart.js</span>
+      </div>
+      <div class="card-link">Open Dashboard</div>
+    </a>
+
+  </div>
+
+  <div class="footer">
+    &copy; 2026 gheWARE &middot; <a href="https://devops.gheware.com">devops.gheware.com</a>
+  </div>
+
+</div>
+
+</body>
+</html>

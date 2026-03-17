@@ -1,6 +1,24 @@
+# Secrets
 .env
 .env.*
+
+# Dependencies
 node_modules/
+
+# Claude Code workspace
+.claude/
+
+# Python
 __pycache__/
 *.pyc
+*.pyo
+
+# OS
 .DS_Store
+Thumbs.db
+
+# Temp/build
+*.log
+*.tmp
+dist/
+build/
